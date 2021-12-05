@@ -12,11 +12,33 @@ import libs.const as const
 import keras_tuner as kt
 
 
-def tune_units(hp: kt.HyperParameters, name, min_value=32, max_value=512, step=32): return hp.Int(
+def tune_units(hp: kt.HyperParameters, name, min_value=32, max_value=512, step=32):
+    """
+    Wrapper function for Keras Tuner. This is an unnecessary function as the hp.Int function can be called directly with the same paramaters.
+
+    Args:
+        hp (kt.HyperParameters): keras Tuner hyperparamater object
+        name ([type]): [description]
+        min_value (int, optional): [description]. Defaults to 32.
+        max_value (int, optional): [description]. Defaults to 512.
+        step (int, optional): [description]. Defaults to 32.
+
+    Returns:
+        [type]: [description]
+    """    
+     return hp.Int(
     name, min_value=min_value, max_value=max_value, step=step)
 
 
 def base_model(hp: kt.HyperParameters):
+    """ Base Model provided by tensorflow for the CIFAR-10 dataset with keras tuner enabled.
+
+    Args:
+        hp (kt.HyperParameters): [description]
+
+    Returns:
+        [type]: [description]
+    """    
     # with strategy.scope():
     model = models.Sequential()
     model.add(layers.Conv2D(tune_units(hp,'conv1_filters',max_value=64), (3, 3), activation='relu'))
@@ -41,6 +63,14 @@ tuner = kt.Hyperband(base_model, objective="val_accuracy", max_epochs=10)
 
 
 def dropout_model(hp):
+    """ Introduces dropout to the base model which helps with overfitting
+
+    Args:
+        hp ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """    
     # with strategy.scope(hp):
     model = models.Sequential()
     model.add(layers.Conv2D(tune_units(hp), (3, 3), activation='relu'))
@@ -71,6 +101,14 @@ def dropout_model(hp):
 
 
 def augment_model(hp):
+    """ Improves on dropout model by introducing data augmentation. 
+
+    Args:
+        hp ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """    
     # with strategy.scope(hp):
     model = models.Sequential()
     model.add(layers.RandomFlip(
@@ -108,6 +146,14 @@ def augment_model(hp):
 
 
 def batch_normalize_model(hp):
+    """ Adds batchnormalization to standardize calculated weights on each run. This significantly improves on the augmentation model
+
+    Args:
+        hp ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """    
     # with strategy.scope(hp):
     model = models.Sequential()
     model.add(layers.RandomFlip("horizontal", input_shape=(32, 32, 3)))
@@ -147,6 +193,14 @@ def batch_normalize_model(hp):
 
 
 def efficient_net(hp):
+    """ Based on the tensorflow B7EfficientNet Model. Capable of up to 90$ accuracy
+
+    Args:
+        hp ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """    
     # with strategy.scope():
     model = models.Sequential()
     model.add(layers.RandomFlip(
@@ -176,16 +230,36 @@ def efficient_net(hp):
 
 
 def _tune_model(model, train_dataset,test_dataset):
+    """ Returns a tuned keras model
+
+    Args:
+        model ([type]): [description]
+        train_dataset ([type]): [description]
+        test_dataset ([type]): [description]
+    """    
     tuner = kt.Hyperband(model, objective='val_accuracy', max_epochs=5)
     tuner.search(train_dataset[0],train_dataset[1],validation_data=test_dataset, epochs=50,batch_size=64, validation_split=0.2,       callbacks=[
                  EarlyStopping(monitor='val_loss', patience=5)])
 
     best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
     compiled_tuned_model = tuner.hypermodel.build(best_hps)
-    # return compiled_tuned_model
+    return compiled_tuned_model
 
 
 def execute_model(model: models.Sequential, train_dataset, test_dataset, checkpoint_filepath, epochs=300, batch_size=1):
+    """Fits and evaluates a given model against a given dataset
+
+    Args:
+        model (models.Sequential): [description]
+        train_dataset ([type]): [description]
+        test_dataset ([type]): [description]
+        checkpoint_filepath ([type]): [description]
+        epochs (int, optional): [description]. Defaults to 300.
+        batch_size (int, optional): [description]. Defaults to 1.
+
+    Returns:
+        [type]: [description]
+    """    
     train_images, train_labels = train_dataset
     test_images, test_labels = test_dataset
 
@@ -212,6 +286,19 @@ def execute_model(model: models.Sequential, train_dataset, test_dataset, checkpo
 
 
 def evaluate_model(model, dataset, show="all"):
+    """Evaluates model against a given dataset and returns the predictions
+
+    Args:
+        model ([type]): [description]
+        dataset ([type]): [description]
+        show (str, optional): [description]. Defaults to "all".
+
+    Raises:
+        TypeError: [description]
+
+    Returns:
+        [type]: [description]
+    """    
     SHOW_OPTIONS = ["all",
                     "incorrect",
                     "correct",
@@ -240,6 +327,19 @@ MODEL_METHODS = [
 
 
 def load_model(model: str, model_dir="", train_dataset=None, test_dataset=None, epochs=1, batch_size=1):
+    """ Loads a saved model or creates a new one if the model isn't found.
+
+    Args:
+        model (str): [description]
+        model_dir (str, optional): [description]. Defaults to "".
+        train_dataset ([type], optional): [description]. Defaults to None.
+        test_dataset ([type], optional): [description]. Defaults to None.
+        epochs (int, optional): [description]. Defaults to 1.
+        batch_size (int, optional): [description]. Defaults to 1.
+
+    Returns:
+        [type]: [description]
+    """    
     print(f"Execute Load Model: (model={model}), model_dir={model_dir}")
     model_path = model_dir + '/' + f"{model}.h5"
     try:

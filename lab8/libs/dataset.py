@@ -4,8 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def save_images():
-    """Only use if images haven't been loaded yet
-
+    """
         Loads pictures from const.py into a temp directory
     """
     for category in ORIGIN_CATEGORIES:
@@ -16,6 +15,15 @@ def save_images():
 
 
 def load_images(image_dir="/tmp/.keras/datasets/", plot = False):
+    """[summary]
+
+    Args:
+        image_dir (str, optional): Specify directory to load images from.  Defaults to "/tmp/.keras/datasets/".
+        plot (bool, optional): [description]. Defaults to False.
+
+    Returns:
+        [tuple]: Returns a tuple of numpy arrrays for use in fitting/testing
+    """    
     test_dataset = tf.keras.preprocessing.image_dataset_from_directory(
         image_dir, image_size=(32, 32), color_mode='rgb',
     )
